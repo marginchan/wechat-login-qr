@@ -1,10 +1,48 @@
 <!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>微信登录二维码</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{margin:0;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}img{width:88vw;max-width:420px;image-rendering:pixelated}</style>
-</head><body>
-<img id="q" alt="微信登录二维码">
+<style>
+ html,body{margin:0;background:#f2f2f2;font-family:-apple-system,"PingFang SC",sans-serif}
+ .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:18px}
+ .card{background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 2px 16px rgba(0,0,0,.08);text-align:center}
+ h1{font-size:19px;margin:0 0 6px;color:#111}
+ p{font-size:13px;color:#888;margin:0 0 18px;line-height:1.7}
+ img{width:min(78vw,340px);height:auto;display:block;image-rendering:pixelated;border-radius:6px}
+ #st{font-size:12px;color:#999;margin-top:14px}
+ .retry{margin-top:12px;font-size:13px;color:#07c160;text-decoration:underline;cursor:pointer}
+</style></head>
+<body>
+<div class="wrap"><div class="card">
+ <h1>微信机器人登录</h1>
+ <p>用微信「扫一扫」扫描下方二维码<br>并在手机上确认登录</p>
+ <img id="q" alt="微信登录二维码">
+ <div id="st">正在加载二维码…</div>
+ <div class="retry" id="retry" style="display:none">点击刷新</div>
+</div></div>
 <script>
-document.getElementById('q').src='wechat-login-qr.png?v='+Date.now();
+var API="https://api.github.com/repos/marginchan/wechat-login-qr/contents/wechat-login-qr.png";
+function load(){
+  var st=document.getElementById('st'), q=document.getElementById('q'), retry=document.getElementById('retry');
+  st.textContent="正在加载二维码…"; retry.style.display="none";
+  // 公开仓库，无需 token；加时间戳穿透 60s 边缘缓存
+  fetch(API+"?ref=master&t="+Date.now(),{cache:"no-store"})
+   .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+   .then(function(j){
+      if(!j.content) throw new Error("no content");
+      var b64=j.content.replace(/\s/g,"");
+      q.src="data:image/png;base64,"+b64+"?v="+Date.now();
+      st.textContent="扫码后请在手机上确认 · 页面每分钟自动更新";
+      retry.style.display="block";
+   })
+   .catch(function(e){
+      // 兜底：直接用 raw 链接
+      q.src="https://raw.githubusercontent.com/marginchan/wechat-login-qr/master/wechat-login-qr.png?v="+Date.now();
+      st.textContent="二维码加载中…（备用通道）";
+      retry.style.display="block";
+   });
+}
+load();
+setInterval(load,60000);
+document.getElementById('retry').addEventListener("click",load);
 </script>
 </body></html>
