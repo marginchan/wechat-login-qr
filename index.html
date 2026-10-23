@@ -1,6 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>微信登录二维码</title>
 <style>
  html,body{margin:0;background:#f2f2f2;font-family:-apple-system,"PingFang SC",Helvetica,sans-serif}
@@ -23,29 +22,29 @@
 <script>
 var RAW="https://raw.githubusercontent.com/marginchan/wechat-login-qr/master/wechat-login-qr.png";
 var API="https://api.github.com/repos/marginchan/wechat-login-qr/contents/wechat-login-qr.png";
-// 按顺序尝试：GitHub API(直连) -> raw -> 国内加速镜像
+// 图片直链候选（按国内可达性排序），每个都带时间戳穿透缓存
 var IMGS=[
-  API+"?ref=master&t=",
-  RAW+"?v=",
-  "https://ghfast.top/"+RAW+"?v=",
-  "https://gh-proxy.com/"+RAW+"?v=",
-  "https://ghproxy.net/"+RAW+"?v="
+ "https://ghfast.top/"+RAW,
+ "https://gh-proxy.com/"+RAW,
+ "https://ghproxy.net/"+RAW,
+ "https://cdn.statically.io/gh/marginchan/wechat-login-qr/master/wechat-login-qr.png",
+ RAW
 ];
-var idx=0;
 function st(t){document.getElementById('st').textContent=t;}
-function tryImg(){
-  var q=document.getElementById('q');
-  if(idx>=IMGS.length){ st("二维码加载失败，请点下方重试"); return; }
-  var url=IMGS[idx++]+Date.now();
-  var done=false;
-  q.onload=function(){ if(!done){done=true; st("扫码后请在手机上确认 · 页面每分钟自动更新"); document.getElementById('retry').style.display="block";} };
-  q.onerror=function(){ if(!done){done=true; tryImg();} };
-  q.src=url;
-}
 function load(){
-  idx=0; st("正在加载二维码…");
-  document.getElementById('retry').style.display="none";
-  tryImg();
+  var q=document.getElementById('q'), retry=document.getElementById('retry');
+  st("正在加载二维码…"); retry.style.display="none";
+  var i=0, finished=false;
+  function next(){
+    if(finished) return;
+    if(i>=IMGS.length){ st("二维码加载失败，请点下方重试"); retry.style.display="block"; return; }
+    var url=IMGS[i++]+"?v="+Date.now();
+    var to=setTimeout(function(){ if(!finished){ q.removeAttribute("src"); next(); } },12000);
+    q.onload=function(){ if(finished)return; finished=true; clearTimeout(to); st("扫码后请在手机上确认 · 页面每分钟自动更新"); retry.style.display="block"; };
+    q.onerror=function(){ if(finished)return; clearTimeout(to); next(); };
+    q.src=url;
+  }
+  next();
 }
 load();
 setInterval(load,60000);
