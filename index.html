@@ -1,13 +1,14 @@
 <!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>微信登录二维码</title>
 <style>
- html,body{margin:0;background:#f2f2f2;font-family:-apple-system,"PingFang SC",sans-serif}
- .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:18px}
- .card{background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 2px 16px rgba(0,0,0,.08);text-align:center;max-width:420px}
+ html,body{margin:0;background:#f2f2f2;font-family:-apple-system,"PingFang SC",Helvetica,sans-serif}
+ .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+ .card{background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 2px 16px rgba(0,0,0,.08);text-align:center;max-width:420px;width:100%}
  h1{font-size:19px;margin:0 0 6px;color:#111}
  p{font-size:13px;color:#888;margin:0 0 18px;line-height:1.7}
- img{width:min(78vw,320px);height:auto;display:block;image-rendering:pixelated;border-radius:6px}
+ img{width:min(78vw,320px);height:auto;display:block;image-rendering:pixelated;border-radius:6px;margin:0 auto}
  #st{font-size:12px;color:#999;margin-top:14px;min-height:16px}
  .retry{margin-top:12px;font-size:13px;color:#07c160;text-decoration:underline;cursor:pointer}
 </style></head>
@@ -20,28 +21,31 @@
  <div class="retry" id="retry" style="display:none">点击刷新</div>
 </div></div>
 <script>
+var RAW="https://raw.githubusercontent.com/marginchan/wechat-login-qr/master/wechat-login-qr.png";
 var API="https://api.github.com/repos/marginchan/wechat-login-qr/contents/wechat-login-qr.png";
-function show(dataUri,msg){
+// 按顺序尝试：GitHub API(直连) -> raw -> 国内加速镜像
+var IMGS=[
+  API+"?ref=master&t=",
+  RAW+"?v=",
+  "https://ghfast.top/"+RAW+"?v=",
+  "https://gh-proxy.com/"+RAW+"?v=",
+  "https://ghproxy.net/"+RAW+"?v="
+];
+var idx=0;
+function st(t){document.getElementById('st').textContent=t;}
+function tryImg(){
   var q=document.getElementById('q');
-  q.onload=function(){ document.getElementById('st').textContent=msg; };
-  q.onerror=function(){ document.getElementById('st').textContent="二维码加载失败，点下方重试"; };
-  q.src=dataUri;
+  if(idx>=IMGS.length){ st("二维码加载失败，请点下方重试"); return; }
+  var url=IMGS[idx++]+Date.now();
+  var done=false;
+  q.onload=function(){ if(!done){done=true; st("扫码后请在手机上确认 · 页面每分钟自动更新"); document.getElementById('retry').style.display="block";} };
+  q.onerror=function(){ if(!done){done=true; tryImg();} };
+  q.src=url;
 }
 function load(){
-  var st=document.getElementById('st'), retry=document.getElementById('retry');
-  st.textContent="正在加载二维码…"; retry.style.display="none";
-  fetch(API+"?ref=master&t="+Date.now(),{cache:"no-store"})
-   .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
-   .then(function(j){
-      if(!j.content) throw new Error("no content");
-      var b64=j.content.replace(/\s/g,"");
-      show("data:image/png;base64,"+b64,"扫码后请在手机上确认 · 页面每分钟自动更新");
-      retry.style.display="block";
-   })
-   .catch(function(e){
-      show("https://raw.githubusercontent.com/marginchan/wechat-login-qr/master/wechat-login-qr.png?v="+Date.now(),"二维码加载中…（备用通道）");
-      retry.style.display="block";
-   });
+  idx=0; st("正在加载二维码…");
+  document.getElementById('retry').style.display="none";
+  tryImg();
 }
 load();
 setInterval(load,60000);
